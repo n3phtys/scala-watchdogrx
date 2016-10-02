@@ -1,4 +1,6 @@
-import java.io.{BufferedReader, InputStream, InputStreamReader, OutputStreamWriter}
+package org.nephtys.watchdogrx
+
+import java.io.{BufferedReader, InputStream, InputStreamReader}
 import java.nio.charset.Charset
 
 import rx.lang.scala.{Observable, Subscription}
@@ -16,19 +18,19 @@ object WatchDogHelpers {
       * @param program
       * @return
       */
-    def forEachDistinct(program : => ConfigurableProgram): Subscription = {
+    def forEachDistinct(program : () => ConfigurableProgram): Subscription = {
       var previous : Option[(Map[FilePath, FileContentStream], ConfigurableProgram)] = None
       filestreams.distinct.subscribe(config => {
         previous match {
           case Some((previousConfig, previousProgram)) => {
             previousProgram.close()
             previousConfig.foreach(_._2.closeIfOpen())
-            val pr = program
+            val pr = program.apply()
             previous = Some((config, pr))
             pr.initializeWithConfig(config)
           }
           case None => {
-              val pr = program
+              val pr = program.apply()
               previous = Some((config, pr))
               pr.initializeWithConfig(config)
           }
@@ -39,6 +41,7 @@ object WatchDogHelpers {
 
   implicit class ObservableAnyFileExtension(trigger: Observable[Any]) {
     def loadFileContentsOnEmission(filepaths : Seq[FilePath]): Observable[Map[FilePath, FileContentStream]] = {
+      //println("Creating loadFile obs from " + filepaths)
       //cache previous map emision as option
       var previous : Option[Map[FilePath, FileContentStream]] = None
       //use map
@@ -47,11 +50,13 @@ object WatchDogHelpers {
         previous match {
           case Some(previousMap) => {
             val newmap = filepaths.map(p => (p, FileContentStream.from(p, previousMap.get(p)))).toMap
+            //println("Newmap: "+ newmap)
             previous = Some(newmap)
             newmap
           }
           case None => {
             val newmap = filepaths.map(p => (p, FileContentStream.from(p, None))).toMap
+            //println("Newmap: "+ newmap)
             previous = Some(newmap)
             newmap
           }
@@ -59,10 +64,10 @@ object WatchDogHelpers {
       })
     }
 
-    def programWithConfigsFilePaths(filepaths : Seq[FilePath])(program : ConfigurableProgram) : Unit = {
+    def programWithConfigsFilePaths(filepaths : Seq[FilePath])(program : () => ConfigurableProgram) : Unit = {
       trigger.loadFileContentsOnEmission(filepaths).forEachDistinct(program)
     }
-    def programWithConfigs(filepaths : Seq[String])(program : ConfigurableProgram) : Unit =
+    def programWithConfigs(filepaths : Seq[String])(program : () => ConfigurableProgram) : Unit =
       programWithConfigsFilePaths(filepaths.map(s => FilePath(s)))(program)
   }
 
@@ -100,7 +105,7 @@ object WatchDogHelpers {
           cleanup(resource)
         }
       } catch {
-        case e: Exception => println(e) // should be logged
+        case e: Exception => println(e) //TODO: should be logged
       }
     }
   }

@@ -1,4 +1,4 @@
-import java.io.Closeable
+package org.nephtys.watchdogrx
 
 /**
   * Created by nephtys on 10/1/16.
@@ -6,4 +6,7 @@ import java.io.Closeable
 trait ConfigurableProgram extends AutoCloseable {
 
   def initializeWithConfig(configs : Map[FilePath, FileContentStream]) : Unit
+
+
+
 }

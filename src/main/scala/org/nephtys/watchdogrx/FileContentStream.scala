@@ -1,4 +1,6 @@
-import java.io.{File, FileInputStream, IOException, InputStream}
+package org.nephtys.watchdogrx
+
+import java.io.{File, FileInputStream, IOException}
 import java.nio.charset.{Charset, StandardCharsets}
 
 /**
@@ -30,7 +32,7 @@ object FileContentStream {
   def from(filepath : String, ifNewerThan : Option[FileContentStream]) : FileContentStream = {
     val file = new File(filepath)
     if (!file.exists() || !file.isFile || !file.canRead) {
-      throw new IOException(s"FileContentStream.from() could not find a readable file at $filepath")
+      throw new IOException(s"org.nephtys.watchdogrx.FileContentStream.from() could not find a readable file at $filepath")
     }
     val modifiedDate = file.lastModified()
     ifNewerThan.filter(_.lastModifiedDate >= modifiedDate).getOrElse(FileContentStream(modifiedDate, new FileInputStream(file)))
